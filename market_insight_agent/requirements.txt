@@ -1,0 +1,9 @@
+yfinance>=0.2.40
+pandas>=2.0
+pandas_datareader>=0.10.0
+requests>=2.31
+feedparser>=6.0
+python-dotenv>=1.0
+apscheduler>=3.10
+anthropic>=0.30.0  # or `openai` if you prefer that provider
+streamlit>=1.37
