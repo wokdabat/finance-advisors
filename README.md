@@ -8,6 +8,14 @@ An AI-powered financial market insight platform built on **Vercel's [eve](https:
 
 This repo contains an **eve agent** (TypeScript, powered by Claude via the Vercel AI SDK) alongside **two independent Streamlit dashboards** that surface market data and technical signals for equities, gold/commodities, real estate, and crypto.
 
+## Demo
+
+`docs/demo/` has a recorded walkthrough of both dashboards — real yfinance/FRED data, a live Anthropic API call generating an actual report, and the PDF export feature end to end. No mock data.
+
+- **Easiest:** open [`docs/demo/demo.html`](docs/demo/demo.html) in any browser. It's a single self-contained file (video, screenshots, and fonts all embedded) — works offline, no server needed.
+- Or watch the videos directly: `docs/demo/demo.mp4` (84s, full session) and `docs/demo/slideshow.mp4` (24s quick flip-through).
+- Or browse the individual stills in `docs/demo/screenshots/`.
+
 ## The two dashboards
 
 ### 1. `market_insight_agent/` — Market Insight Dashboard
@@ -53,6 +61,15 @@ streamlit run app.py
 financial-advisors/
 ├── agent/
 │   └── agent.ts              # eve agent definition (Claude Sonnet 5 via @ai-sdk/anthropic)
+├── docs/
+│   ├── SYSTEM_DESIGN_REPORT.md    # Architecture & engineering report (source of truth)
+│   ├── SYSTEM_DESIGN_REPORT.pdf   # Generated PDF (via generate_report_pdf.py)
+│   ├── generate_report_pdf.py     # fpdf2-based Markdown -> PDF generator
+│   └── demo/                       # Recorded walkthrough of both dashboards
+│       ├── demo.html                # Self-contained viewer (video + screenshots embedded)
+│       ├── demo.mp4                 # Full session recording (real data, real LLM call)
+│       ├── slideshow.mp4             # Quick flip-through of key screens
+│       └── screenshots/               # Individual stills
 ├── market_insight_agent/     # Dashboard #1 — full-featured, multi-tab Streamlit app
 │   ├── app.py                 # Streamlit UI (tabs, charts, AI report controls)
 │   ├── config.py               # Tickers, FRED series, LLM/Slack/env config
