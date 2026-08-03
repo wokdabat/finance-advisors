@@ -30,7 +30,7 @@ def trend_signal(price_history: pd.DataFrame) -> dict:
         "ma50": round(float(ma50), 2),
         "ma200": round(float(ma200), 2),
         "pct_off_52w_high": round(
-            float((last_price / close.rolling(252).max().iloc[-1] - 1) * 100), 2
+            float((last_price / close.tail(252).max() - 1) * 100), 2
         ),
     }
 
