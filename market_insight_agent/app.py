@@ -25,6 +25,7 @@ import os
 
 import pandas as pd
 import streamlit as st
+from fpdf import FPDF
 
 import config
 import data_sources as ds
@@ -120,6 +121,53 @@ def list_saved_reports() -> list[str]:
     return files
 
 
+_PDF_CHAR_REPLACEMENTS = {
+    "—": "-", "–": "-",  # em/en dash
+    "‘": "'", "’": "'",  # curly single quotes
+    "“": '"', "”": '"',  # curly double quotes
+    "…": "...",  # ellipsis
+    " ": " ",  # non-breaking space
+    "•": "-",  # bullet
+}
+
+
+def _pdf_safe(text: str) -> str:
+    """Core PDF fonts only support Latin-1; normalize common Unicode typography
+    (em dashes, curly quotes, etc. -- common in LLM-generated text) to ASCII,
+    then fall back to replacing anything else so rendering never crashes."""
+    for src, dst in _PDF_CHAR_REPLACEMENTS.items():
+        text = text.replace(src, dst)
+    return text.encode("latin-1", "replace").decode("latin-1")
+
+
+def markdown_to_pdf_bytes(text: str) -> bytes:
+    """Very small markdown-ish -> PDF renderer (headings, bold lines, paragraphs)."""
+    text = _pdf_safe(text)
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("helvetica", size=11)
+    for raw_line in text.splitlines() or [""]:
+        line = raw_line.strip()
+        if line.startswith("# "):
+            pdf.set_font("helvetica", "B", 16)
+            pdf.multi_cell(0, 8, line[2:], new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", size=11)
+        elif line.startswith("## "):
+            pdf.set_font("helvetica", "B", 13)
+            pdf.multi_cell(0, 7, line[3:], new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", size=11)
+        elif line.startswith("**") and line.endswith("**"):
+            pdf.set_font("helvetica", "B", 11)
+            pdf.multi_cell(0, 6, line.strip("*"), new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", size=11)
+        elif not line:
+            pdf.ln(3)
+        else:
+            pdf.multi_cell(0, 6, line.replace("**", "").replace("_", ""), new_x="LMARGIN", new_y="NEXT")
+    return bytes(pdf.output())
+
+
 # ---------------------------------------------------------------------
 # Page setup
 # ---------------------------------------------------------------------
@@ -213,6 +261,13 @@ with tab_ai:
     )
     if st.session_state.report_text:
         st.caption(f"Generated at {st.session_state.report_time}")
+        report_stem = os.path.splitext(os.path.basename(st.session_state.get("report_path") or "market_insight_report.md"))[0]
+        st.download_button(
+            "⬇️ Download report (.pdf)",
+            data=markdown_to_pdf_bytes(st.session_state.report_text),
+            file_name=f"{report_stem}.pdf",
+            mime="application/pdf",
+        )
         st.markdown(st.session_state.report_text)
     else:
         st.info("No report generated yet this session. Use the sidebar button to create one.")
@@ -226,4 +281,12 @@ with tab_history:
         choice = st.selectbox("Choose a report", files, format_func=os.path.basename)
         if choice:
             with open(choice) as f:
-                st.markdown(f.read())
+                content = f.read()
+            report_stem = os.path.splitext(os.path.basename(choice))[0]
+            st.download_button(
+                "⬇️ Download this report (.pdf)",
+                data=markdown_to_pdf_bytes(content),
+                file_name=f"{report_stem}.pdf",
+                mime="application/pdf",
+            )
+            st.markdown(content)

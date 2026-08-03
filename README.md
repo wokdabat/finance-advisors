@@ -18,8 +18,8 @@ The primary, actively developed dashboard. A multi-tab Streamlit app plus a stan
 - **Signals computed locally (no LLM required to view):** trend, 21-day momentum, valuation (P/E), and a sector/factor breadth proxy (`indicators.py`)
 - **Breadth proxy tickers:** Semiconductors (SOXX), Momentum factor (MTUM), Equal-weight S&P (RSP)
 - **Macro data:** pulled from FRED — 30yr mortgage rate, Fed funds rate, CPI, 10-year Treasury yield, unemployment rate, Case-Shiller home price index
-- **AI Insight tab:** generates a synthesized written report via an LLM (Anthropic or OpenAI, configurable), optionally pushed to Slack via webhook
-- **History tab:** browse previously generated markdown reports (saved under `reports/`)
+- **AI Insight tab:** generates a synthesized written report via an LLM (Anthropic or OpenAI, configurable), optionally pushed to Slack via webhook, with a **PDF download button** for the generated report
+- **History tab:** browse previously generated markdown reports (saved under `reports/`), each downloadable as a **PDF**
 - **CLI mode** (`main.py`): run a single report (`--once`) or schedule a daily run (`--schedule "08:30"`) via APScheduler
 - **Caching:** price/macro data cached 15 minutes via `st.cache_data` so tab switches don't re-hit yfinance/FRED
 
@@ -38,6 +38,7 @@ A single-file, self-contained Streamlit + Plotly app covering a broader asset ca
 - **Asset catalog:** Stocks & Indices (AAPL, MSFT, AMZN, GOOGL, NVDA, TSLA, S&P 500, Nasdaq 100, Dow Jones), Gold & Commodities (Gold/Silver futures, GLD, Crude Oil, Copper), Real Estate REIT proxies (VNQ, IYR, SCHH, PLD, AMT, O), Crypto (BTC, ETH, SOL)
 - **Sentiment:** simple positive/negative keyword scoring over headlines
 - **Charts:** interactive Plotly candlestick/subplot charts
+- **PDF download button:** the Analysis tab's generated ticker report (metrics, recommendation, narrative, signals, headlines) can be downloaded as a PDF
 
 Run it with:
 ```bash
@@ -81,6 +82,7 @@ financial-advisors/
 - **Agent runtime:** TypeScript, [Vercel AI SDK](https://sdk.vercel.ai), `@ai-sdk/anthropic`
 - **Model:** Claude Sonnet 5
 - **Dashboards:** Python, Streamlit, Plotly
+- **PDF generation:** `fpdf2`
 - **Data sources:** yfinance, FRED (via `pandas_datareader`), NewsAPI/RSS fallback
 - **Report delivery:** Slack incoming webhooks
 

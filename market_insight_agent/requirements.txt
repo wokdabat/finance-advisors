@@ -7,3 +7,4 @@ python-dotenv>=1.0
 apscheduler>=3.10
 anthropic>=0.30.0  # or `openai` if you prefer that provider
 streamlit>=1.37
+fpdf2>=2.7

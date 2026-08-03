@@ -12,9 +12,12 @@ Run with:
 This tool is for educational purposes only and is NOT financial advice.
 """
 
+import datetime as dt
+
 import numpy as np
 import pandas as pd
 import streamlit as st
+from fpdf import FPDF
 import yfinance as yf
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -346,6 +349,89 @@ def ai_narrative(name: str, score: int, recommendation: str, reasons: list, metr
         return None
 
 
+def build_report_markdown(display_name: str, ticker: str, result: dict, narrative: str) -> str:
+    m = result["metrics"]
+    info = result["info"] or {}
+    lines = [
+        f"# Market Insight Report: {display_name} ({ticker})",
+        f"_Generated {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}_",
+        "",
+        f"**Recommendation:** {result['recommendation']}  |  **Composite score:** {result['score']}/100",
+        "",
+        "## Key metrics",
+        f"- Price: ${m['price']:.2f} ({m['day_change_pct']:.2f}% today)",
+        f"- 52W range: ${m['low_52w']:.2f} - ${m['high_52w']:.2f}",
+        f"- From 52W high: {m['pct_from_high']:.1f}%",
+        f"- YTD return: {m['ytd']:.1f}%" if m.get("ytd") is not None else "- YTD return: N/A",
+        f"- Annualized volatility: {m['volatility']:.1f}%" if m.get("volatility") is not None else "- Annualized volatility: N/A",
+    ]
+    if info:
+        lines += [
+            "",
+            "## Key fundamentals",
+            f"- P/E (trailing): {info.get('trailingPE'):.1f}" if info.get("trailingPE") else "- P/E (trailing): N/A",
+            f"- Market cap: ${info.get('marketCap') / 1e9:.1f}B" if info.get("marketCap") else "- Market cap: N/A",
+            f"- Dividend yield: {info.get('dividendYield') * 100:.2f}%" if info.get("dividendYield") else "- Dividend yield: N/A",
+            f"- Sector: {info.get('sector', 'N/A')}",
+        ]
+    lines += ["", "## Narrative", narrative, "", "## Contributing signals"]
+    for text, weight in result["reasons"]:
+        tag = f"+{weight}" if weight > 0 else (f"{weight}" if weight < 0 else "neutral")
+        lines.append(f"- ({tag}) {text}")
+    if result["headlines"]:
+        lines += ["", "## Recent headlines"]
+        lines += [f"- {h['title']} ({h.get('publisher', '')})" for h in result["headlines"]]
+    lines += ["", "_Educational tool - not financial advice._"]
+    return "\n".join(lines)
+
+
+_PDF_CHAR_REPLACEMENTS = {
+    "—": "-", "–": "-",  # em/en dash
+    "‘": "'", "’": "'",  # curly single quotes
+    "“": '"', "”": '"',  # curly double quotes
+    "…": "...",  # ellipsis
+    " ": " ",  # non-breaking space
+    "•": "-",  # bullet
+}
+
+
+def _pdf_safe(text: str) -> str:
+    """Core PDF fonts only support Latin-1; normalize common Unicode typography
+    (em dashes, curly quotes, etc. -- common in LLM-generated text) to ASCII,
+    then fall back to replacing anything else so rendering never crashes."""
+    for src, dst in _PDF_CHAR_REPLACEMENTS.items():
+        text = text.replace(src, dst)
+    return text.encode("latin-1", "replace").decode("latin-1")
+
+
+def markdown_to_pdf_bytes(text: str) -> bytes:
+    """Very small markdown-ish -> PDF renderer (headings, bold lines, paragraphs)."""
+    text = _pdf_safe(text)
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("helvetica", size=11)
+    for raw_line in text.splitlines() or [""]:
+        line = raw_line.strip()
+        if line.startswith("# "):
+            pdf.set_font("helvetica", "B", 16)
+            pdf.multi_cell(0, 8, line[2:], new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", size=11)
+        elif line.startswith("## "):
+            pdf.set_font("helvetica", "B", 13)
+            pdf.multi_cell(0, 7, line[3:], new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", size=11)
+        elif line.startswith("**") and line.endswith("**"):
+            pdf.set_font("helvetica", "B", 11)
+            pdf.multi_cell(0, 6, line.strip("*"), new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", size=11)
+        elif not line:
+            pdf.ln(3)
+        else:
+            pdf.multi_cell(0, 6, line.replace("**", "").replace("_", ""), new_x="LMARGIN", new_y="NEXT")
+    return bytes(pdf.output())
+
+
 # ----------------------------------------------------------------------------
 # Charting
 # ----------------------------------------------------------------------------
@@ -484,6 +570,14 @@ with tab_analysis:
         if narrative is None:
             narrative = rule_based_narrative(display_name, recommendation, score, result["reasons"])
         st.markdown(narrative)
+
+        report_md = build_report_markdown(display_name, ticker, result, narrative)
+        st.download_button(
+            "⬇️ Download this report (.pdf)",
+            data=markdown_to_pdf_bytes(report_md),
+            file_name=f"market_insight_{ticker.replace('=', '-').replace('^', '')}_{dt.datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+            mime="application/pdf",
+        )
 
         with st.expander("See all contributing signals"):
             for text, weight in result["reasons"]:
