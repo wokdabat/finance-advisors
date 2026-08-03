@@ -128,6 +128,7 @@ _PDF_CHAR_REPLACEMENTS = {
     "…": "...",  # ellipsis
     " ": " ",  # non-breaking space
     "•": "-",  # bullet
+    "↓": "v", "→": "->",  # flow arrows (core fonts have no arrow glyph)
 }
 
 
