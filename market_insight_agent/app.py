@@ -281,8 +281,12 @@ with tab_history:
     else:
         choice = st.selectbox("Choose a report", files, format_func=os.path.basename)
         if choice:
-            with open(choice) as f:
-                content = f.read()
+            try:
+                with open(choice, encoding="utf-8") as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                with open(choice, encoding="cp1252") as f:
+                    content = f.read()
             report_stem = os.path.splitext(os.path.basename(choice))[0]
             st.download_button(
                 "⬇️ Download this report (.pdf)",

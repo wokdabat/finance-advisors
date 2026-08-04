@@ -35,7 +35,7 @@ def save_report(report_text: str, timestamp: str | None = None) -> str:
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
     timestamp = timestamp or dt.datetime.now().strftime("%Y-%m-%d_%H%M")
     out_path = os.path.join(config.OUTPUT_DIR, f"market_insight_{timestamp}.md")
-    with open(out_path, "w") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         f.write(f"# Market Insight Report — {timestamp}\n\n{report_text}\n")
     log.info("Report saved to %s", out_path)
     return out_path
