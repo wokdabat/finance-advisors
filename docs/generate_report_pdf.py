@@ -144,8 +144,9 @@ def render_paragraph(pdf: FPDF, text: str, *, bold: bool = False, italic: bool =
     pdf.set_font("helvetica", size=11)
 
 
-def render_h2(pdf: FPDF, text: str) -> None:
-    pdf.add_page()
+def render_h2(pdf: FPDF, text: str, *, new_page: bool = True) -> None:
+    if new_page:
+        pdf.add_page()
     pdf.start_section(text, level=0)
     pdf.set_font("helvetica", "B", 16)
     pdf.multi_cell(0, 9, text, new_x="LMARGIN", new_y="NEXT")
@@ -244,6 +245,10 @@ def build_pdf() -> None:
     in_code = False
     fence_lang = ""
     code_buffer: list[str] = []
+    # insert_toc_placeholder() already performs its own page break to leave a
+    # fresh page after the ToC, so the first heading must not add another one
+    # (that gap was showing up as a blank page 3 between the ToC and content).
+    first_h2 = True
 
     for raw_line in body_lines:
         line = _pdf_safe(raw_line)
@@ -265,7 +270,8 @@ def build_pdf() -> None:
             continue
 
         if stripped.startswith("## "):
-            render_h2(pdf, stripped[3:])
+            render_h2(pdf, stripped[3:], new_page=not first_h2)
+            first_h2 = False
         elif stripped.startswith("### "):
             render_h3(pdf, stripped[4:])
         elif not stripped:
